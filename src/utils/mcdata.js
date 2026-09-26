@@ -72,18 +72,29 @@ export function initBot(username) {
     // when mineflayer sends position updates faster than 50ms apart
     let lastPositionUpdate = 0;
     let pendingPositionPacket = null;
+    let pendingPositionData = null;
     const POSITION_THROTTLE_MS = 50;
     const originalWrite = bot._client.write.bind(bot._client);
     bot._client.write = function(name, data) {
         if (name === 'position' || name === 'position_look' || name === 'look') {
+            const invalidField = ['x', 'y', 'z', 'yaw', 'pitch'].find(
+                field => field in data && !Number.isFinite(data[field])
+            );
+            if (invalidField) {
+                console.warn(`[movement] Dropped invalid ${name} packet: ${invalidField}=${data[invalidField]}`);
+                return;
+            }
             const now = Date.now();
             if (now - lastPositionUpdate < POSITION_THROTTLE_MS) {
                 // Queue this packet so the last position update is never lost
+                pendingPositionData = { name, data };
                 if (!pendingPositionPacket) {
                     pendingPositionPacket = setTimeout(() => {
                         pendingPositionPacket = null;
                         lastPositionUpdate = Date.now();
-                        originalWrite(name, data);
+                        const packet = pendingPositionData;
+                        pendingPositionData = null;
+                        originalWrite(packet.name, packet.data);
                     }, POSITION_THROTTLE_MS - (now - lastPositionUpdate));
                 }
                 return;
@@ -92,6 +103,7 @@ export function initBot(username) {
             if (pendingPositionPacket) {
                 clearTimeout(pendingPositionPacket);
                 pendingPositionPacket = null;
+                pendingPositionData = null;
             }
         }
         return originalWrite(name, data);

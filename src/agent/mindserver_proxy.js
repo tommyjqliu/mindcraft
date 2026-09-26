@@ -35,8 +35,8 @@ class MindServerProxy {
         this.connected = true;
         console.log(name, 'connected to MindServer');
 
-        this.socket.on('disconnect', () => {
-            console.log('Disconnected from MindServer');
+        this.socket.on('disconnect', (reason, details) => {
+            console.error('Disconnected from MindServer:', reason, details?.message || '');
             this.connected = false;
             if (this.agent) {
                 this.agent.cleanKill('Disconnected from MindServer. Killing agent process.');
