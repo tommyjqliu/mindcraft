@@ -1,6 +1,11 @@
 {
     "name": "andy",
 
-    "model": "gpt-5.4-mini"
+    "api": "openai",
+    "model": "deepseek-flash",
+    "url": "https://api.deepseek.com/v1",
 
+    "params": {
+        "reasoning_effort": "none"
+    }
 }
